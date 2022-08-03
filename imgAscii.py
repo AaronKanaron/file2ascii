@@ -9,6 +9,7 @@ characters = [
              ]
 # characters = [" ", ".", ":", "^", "~", "!", "7", "?", "J", "Y", "5", "G", "B", "#", "&", "@"]
 
+
 def pixel_iter(image):
     piX,piY = image.size
     result = ""

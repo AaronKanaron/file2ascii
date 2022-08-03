@@ -1,15 +1,16 @@
-from PIL import Image, ImageOps
+import time
+from PIL import Image, ImageSequence
 import math
 
 # Change these for result changes
 character_compensator = (2.7,1)
-resolution_multiplier = 1
-characters = [
-             "@", "#", "&", "B", "0", "G", "5", "Y", "J", "?", "7", "*", "!", "~", "^", ":", ",", ".", " "
-             ]
-# characters = [" ", ".", ":", "^", "~", "!", "7", "?", "J", "Y", "5", "G", "B", "#", "&", "@"]
+resolution_multiplier = 2
+# characters = ["@", "#", "&", "B", "0", "G", "5", "Y", "J", "?", "7", "*", "!", "~", "^", ":", ",", ".", " "]
+# characters = [" ",".", ":", "^", "~", "!", "7", "?", "J", "Y", "5", "G", "B", "#", "&", "@"]
+characters = [" ", ".", "'", "`", ",", "^", ":", "\"", ";", "~", "-", "_", "+", "<", ">", "i", "!", "l", "I", "?", "/", "\\", "|", "(", ")", "1", "{", "}", "[", "]", "r", "c", "v", "u", "n", "x", "z", "j", "f", "t", "L", "C", "J", "U", "Y", "X", "Z", "O", "0", "Q", "o", "a", "h", "k", "b", "d", "p", "q", "w", "m", "*", "W", "M", "B", "8", "&", "%", "$", "#", "@"]
+# characters = ["@", "B", "R", "*", "#", "$", "P", "X", "0", "w", "o", "I", "c", "v", ":", "+", "!", "~", "\"", ".", ",", " "]
 
-seq = []
+frames = []
 
 def pixel_iter(image):
     piX,piY = image.size
@@ -18,10 +19,22 @@ def pixel_iter(image):
     for y in range(piY):
         for x in range(piX):
             luminosity = image.getpixel((x,y))
+            # if luminosity == -1: result += " "
             idx = int((luminosity / 255) * (len(characters)-1))
             result += characters[idx]
         result += "\n"
     return result
+
+def frame_iter(image):
+    for fr in ImageSequence.Iterator(image):
+        frame = fr.convert("L")
+        # print(frame)
+        frame = ratio_resize(frame)
+        # print(frame)
+        frame = pixel_iter(frame)
+
+        frames.append(frame)
+
 
 def ratio_resize(image, char_compensator = (1.9,1), max_size=(104,55)):
     width,height = image.size
@@ -58,6 +71,12 @@ def find_transparency(image):
 
     return False
 
+def animate(seq_arr,repeat,time_between_frames): #Time in ms
+    for rep in range(repeat):
+        for i in range(len(seq_arr)):
+            print("\n"*80+seq_arr[i])
+            time.sleep(time_between_frames / 1000)
+    print("done!")
 
 def main():
     try:
@@ -70,10 +89,10 @@ def main():
             transparent_white = True if "y" == input("Do you want to make the transparent background white? (y/n)\n") else False
             image = color_transparency(image) if transparent_white else image
         
-        image = image.convert("L")
-        image = ratio_resize(image, character_compensator)
-        image = pixel_iter(image)
-        print(image)
+        image = frame_iter(image)
+        animate(frames, 3, 100)
+        # print(image)
+        # print(frames)
     except Exception as e:
         print(e)
 
