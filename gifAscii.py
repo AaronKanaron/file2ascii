@@ -9,6 +9,8 @@ characters = [
              ]
 # characters = [" ", ".", ":", "^", "~", "!", "7", "?", "J", "Y", "5", "G", "B", "#", "&", "@"]
 
+seq = []
+
 def pixel_iter(image):
     piX,piY = image.size
     result = ""
@@ -21,11 +23,10 @@ def pixel_iter(image):
         result += "\n"
     return result
 
-def ratio_resize(image, invert = False, char_compensator = (1.9,1), max_size=(104,55)):
+def ratio_resize(image, char_compensator = (1.9,1), max_size=(104,55)):
     width,height = image.size
     ratio = min(max_size[0]/width, max_size[1]/height)
     new_width, new_height = (width*ratio*char_compensator[0]*resolution_multiplier, height*ratio*char_compensator[1]*resolution_multiplier)
-    image = ImageOps.invert(image) if not invert else image
     image = image.resize((int(new_width),int(new_height)), Image.Resampling.LANCZOS)
     return image
 
@@ -62,7 +63,6 @@ def main():
     try:
         # Inputs from user
         image_path = input("Drag and drop the image or white the image path\n")
-        invert = True if "y" == input("Invert the image? (y/n)") else False
         # invert = False
         image = Image.open(image_path.replace(" ", ""))
         # Find and color transparency
@@ -71,7 +71,7 @@ def main():
             image = color_transparency(image) if transparent_white else image
         
         image = image.convert("L")
-        image = ratio_resize(image, invert, character_compensator)
+        image = ratio_resize(image, character_compensator)
         image = pixel_iter(image)
         print(image)
     except Exception as e:
