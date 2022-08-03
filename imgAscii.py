@@ -12,8 +12,8 @@ resolution_multiplier = 0.5
 
 # characters = [[" ", 0], [".", 8], [":", 16], ["^", 20], ["~", 25], ["!", 30], ["7", 37], ["?", 44], ["J", 50], ["Y", 55], ["5", 60], ["P", 68], ["G", 75], ["B", 80], ["&", 86], ["#", 90], ["@", 100]]
 
-def to_percent(num, total):
-    return (num/100)*total
+# def to_percent(num, total):
+#     return (num/100)*total
 
 
 def pixel_iter(image):
