@@ -1,5 +1,7 @@
+import os
+from PIL import Image, ImageOps, ImageSequence
 import time
-from PIL import Image, ImageSequence
+
 
 character_sets = [
     ["@", "&", "#", "B", "G", "5", "Y", "J", "?", "7", "!", "~", "^", ":", ".", " "], #0
@@ -12,12 +14,15 @@ character_sets = [
 character_compensator = (2,1) 
 # If you want to scale the image up in resolution ( smaller (0,5) - bigger (2) )
 resolution_multiplier = 1
+# When saving to a text file, put the path here. If output.txt does not exist, it will be created.
+output_path = "output.txt"
 # Depending on how much detail you want, less colors can give better results
 characters = character_sets[1] # values from 0 to 2
 
-# Code
-
 frames = []
+
+
+#Both for GIFS and Images
 
 def pixel_iter(image):
     piX,piY = image.size
@@ -26,42 +31,32 @@ def pixel_iter(image):
     for y in range(piY):
         for x in range(piX):
             luminosity = image.getpixel((x,y))
-            # if luminosity == -1: result += " "
             idx = int((luminosity / 255) * (len(characters)-1))
             result += characters[idx]
         result += "\n"
     return result
 
-def frame_iter(image):
-    for fr in ImageSequence.Iterator(image):
-        frame = fr.convert("L")
-        # print(frame)
-        frame = ratio_resize(frame)
-        # print(frame)
-        frame = pixel_iter(frame)
-
-        frames.append(frame)
-
-def ratio_resize(image, char_compensator = (1.9,1), max_size=(104,55)):
+def ratio_resize(image, invert = False, char_compensator = (1.9,1), max_size=(104,55)):
     width,height = image.size
     ratio = min(max_size[0]/width, max_size[1]/height)
     new_width, new_height = (width*ratio*char_compensator[0]*resolution_multiplier, height*ratio*char_compensator[1]*resolution_multiplier)
+    image = ImageOps.invert(image) if not invert else image
     image = image.resize((int(new_width),int(new_height)), Image.Resampling.LANCZOS)
     return image
 
-def color_transparency(image):
-    ctX,ctY = image.size
+def color_transparency(image, orig_color = (0,0,0,0), new_color = (255,255,255,255)): #Extremely slow
     try:
+        ctX,ctY = image.size
         image = image.convert("RGBA")
         for x in range(ctX):
             for y in range(ctY):
-                if image.getpixel((x,y)) == (0,0,0,0):
+                if image.getpixel((x,y)) == (0,0,0,0) or image.getpixel((x,y)) == (255,255,255,0):
                     image.putpixel((x,y), (255,255,255,255))
         return image
     except Exception as e:
-        print("Could not convert into rgba, continuing with black transparancy")
+        print(f"Could not convert into rgba, continuing with black transparancy due to:")
         return image
-
+    
 def find_transparency(image):
     if image.info.get("transparency", None) is not None:
         return True
@@ -74,8 +69,18 @@ def find_transparency(image):
         extrema = image.getextrema()
         if extrema[3][0] < 255:
             return True
-
     return False
+
+# For GIFS
+
+def frame_iter(image):
+    for fr in ImageSequence.Iterator(image):
+        frame = fr.convert("L")
+        frame = ratio_resize(frame)
+        frame = pixel_iter(frame)
+
+        frames.append(frame)
+
 
 def animate(seq_arr,repeat,time_between_frames): #Time in ms
     for rep in range(repeat):
@@ -83,20 +88,31 @@ def animate(seq_arr,repeat,time_between_frames): #Time in ms
             print("\n"*80+seq_arr[i])
             time.sleep(time_between_frames / 1000)
     print("done!")
+    
+    
+    
+# Main Function
 
 def main():
     try:
         # Inputs from user
-        image_path = input("Drag and drop the image or white the image path\n")
-        # invert = False
-        image = Image.open(image_path.replace(" ", ""))
-        # Find and color transparency
+        image_path = input("Drag and drop the image or white the image path\n").replace(" ", "")
+        image = Image.open(image_path)
+        _, file_extension = os.path.splitext(image_path)
         if find_transparency(image):
             transparent_white = True if "y" == input("Do you want to make the transparent background white? (y/n)\n") else False
             image = color_transparency(image) if transparent_white else image
         
-        image = frame_iter(image)
-        animate(frames, 3, 100)
+        if file_extension != ".gif" or not image.n_frames:
+            invert = True if "y" == input("Invert the image? (y/n)") else False
+            image = image.convert("L")
+            image = ratio_resize(image, invert, character_compensator)
+            image = pixel_iter(image)
+            print(image)
+        else: #It is an image
+            image = frame_iter(image)
+            animate(frames, 3, 100)
+            
     except Exception as e:
         print(e)
 

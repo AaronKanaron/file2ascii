@@ -1,14 +1,23 @@
-from PIL import Image, ImageOps
-import math
+from PIL import Image, ImageOps, ImageFilter
+import numpy as np
 
-# Change these for result changes
-character_compensator = (2.7,1)
+character_sets = [
+    ["@", "&", "#", "B", "G", "5", "Y", "J", "?", "7", "!", "~", "^", ":", ".", " "], #0
+    ["@", "#", "&", "B", "0", "G", "5", "Y", "J", "?", "7", "*", "!", "~", "^", ":", ",", ".", " "], #1
+    ["@", "#", "$", "%", "&", "8", "B", "M", "W", "*", "m", "w", "q", "p", "d", "b", "k", "h", "a", "o", "Q", "0", "O", "Z", "X", "Y", "U", "J", "C", "L", "t", "f", "j", "z", "x", "n", "u", "v", "c", "r", "]", "[", "}", "{", "1", ")", "(", "|", "\\", "/", "?", "I", "l", "!", "i", ">", "<", "+", "_", "-", "~", ";", "\"", ":", "^", ",", "`", "'", ".", " "] #2
+    ]
+
+# =- Config -= #
+# Symbols are not the same height as width, depending on how much you want to strech the image (x,y)
+character_compensator = (2,1) 
+# If you want to scale the image up in resolution ( smaller (0,5) - bigger (2) )
 resolution_multiplier = 1
-characters = [
-             "@", "#", "&", "B", "0", "G", "5", "Y", "J", "?", "7", "*", "!", "~", "^", ":", ",", ".", " "
-             ]
-# characters = [" ", ".", ":", "^", "~", "!", "7", "?", "J", "Y", "5", "G", "B", "#", "&", "@"]
+# When saving to a text file, put the path here. If output.txt does not exist, it will be created.
+output_path = "output.txt"
+# Depending on how much detail you want, less colors can give better results
+characters = character_sets[1] # values from 0 to 2
 
+# Code
 
 def pixel_iter(image):
     piX,piY = image.size
@@ -30,18 +39,20 @@ def ratio_resize(image, invert = False, char_compensator = (1.9,1), max_size=(10
     image = image.resize((int(new_width),int(new_height)), Image.Resampling.LANCZOS)
     return image
 
-def color_transparency(image):
-    ctX,ctY = image.size
+def color_transparency(image, orig_color = (0,0,0,0), new_color = (255,255,255,255)): #Extremely slow
     try:
+        ctX,ctY = image.size
         image = image.convert("RGBA")
         for x in range(ctX):
             for y in range(ctY):
-                if image.getpixel((x,y)) == (0,0,0,0):
+                if image.getpixel((x,y)) == (0,0,0,0) or image.getpixel((x,y)) == (255,255,255,0):
                     image.putpixel((x,y), (255,255,255,255))
         return image
     except Exception as e:
-        print("Could not convert into rgba, continuing with black transparancy")
+        print(f"Could not convert into rgba, continuing with black transparancy due to:")
         return image
+
+
 
 def find_transparency(image):
     if image.info.get("transparency", None) is not None:
@@ -55,7 +66,6 @@ def find_transparency(image):
         extrema = image.getextrema()
         if extrema[3][0] < 255:
             return True
-
     return False
 
 
@@ -75,6 +85,11 @@ def main():
         image = ratio_resize(image, invert, character_compensator)
         image = pixel_iter(image)
         print(image)
+        if "y" == input("Save to .txt file? (y/n)\n"):
+            print("YES")
+            with open(output_path, "w") as out:
+                out.write(image)
+        else: print("No save.")
     except Exception as e:
         print(e)
 
